@@ -1,0 +1,34 @@
+{
+  "id": "nct-bus-departures",
+  "name": "NCT Bus Departures",
+  "version": "1.0.0",
+  "author": "Community",
+  "description": "Live Nottingham City Transport departures for a configured NCT stop, tuned for 128x32 LEDMatrix displays.",
+  "entry_point": "manager.py",
+  "class_name": "NCTBusDeparturesPlugin",
+  "category": "transit",
+  "tags": [
+    "nct",
+    "nottingham",
+    "bus",
+    "transit",
+    "departures"
+  ],
+  "display_modes": [
+    "nct_bus_departures"
+  ],
+  "update_interval": 30,
+  "default_duration": 15,
+  "config_schema": "config_schema.json",
+  "compatible_versions": [
+    ">=2.0.0"
+  ],
+  "versions": [
+    {
+      "released": "2026-10-23",
+      "version": "1.0.0",
+      "ledmatrix_min_version": "2.0.0"
+    }
+  ],
+  "last_updated": "2026-10-23"
+}

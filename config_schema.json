@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "NCT Bus Departures",
+  "description": "Live departures from an NCT stop page.",
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable this plugin"
+    },
+    "stop_id": {
+      "type": "string",
+      "default": "YOUR_STOP_ID",
+      "minLength": 1,
+      "description": "NCT/ATCO stop code. Enter your stop ID in LEDMatrix settings."
+    },
+    "stop_name": {
+      "type": "string",
+      "default": "Bus Stop",
+      "maxLength": 30,
+      "description": "Optional short heading shown on the matrix."
+    },
+    "route_filter": {
+      "type": "string",
+      "default": "",
+      "maxLength": 12,
+      "description": "Only show this route. Leave blank to show all routes."
+    },
+    "max_departures": {
+      "type": "integer",
+      "default": 3,
+      "minimum": 1,
+      "maximum": 3,
+      "description": "Number of departures shown on a 128x32 panel"
+    },
+    "update_interval": {
+      "type": "integer",
+      "default": 30,
+      "minimum": 15,
+      "maximum": 300,
+      "description": "Seconds between page refreshes"
+    },
+    "display_duration": {
+      "type": "number",
+      "default": 15,
+      "minimum": 3,
+      "maximum": 300,
+      "description": "Seconds to show this screen in the display rotation"
+    }
+  },
+  "required": [
+    "enabled",
+    "stop_id"
+  ],
+  "additionalProperties": false
+}
