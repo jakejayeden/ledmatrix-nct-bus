@@ -17,21 +17,21 @@
     },
     "stop_name": {
       "type": "string",
-      "default": "Bus Stop",
-      "maxLength": 30,
-      "description": "Optional short heading shown on the matrix."
+      "default": "Field Lane, Burton Drive (opp)",
+      "maxLength": 40,
+      "description": "Heading shown on the matrix."
     },
     "route_filter": {
       "type": "string",
-      "default": "",
+      "default": "36",
       "maxLength": 12,
       "description": "Only show this route. Leave blank to show all routes."
     },
     "max_departures": {
       "type": "integer",
-      "default": 3,
+      "default": 2,
       "minimum": 1,
-      "maximum": 3,
+      "maximum": 2,
       "description": "Number of departures shown on a 128x32 panel"
     },
     "update_interval": {
@@ -49,9 +49,6 @@
       "description": "Seconds to show this screen in the display rotation"
     }
   },
-  "required": [
-    "enabled",
-    "stop_id"
-  ],
+  "required": ["enabled", "stop_id"],
   "additionalProperties": false
 }
