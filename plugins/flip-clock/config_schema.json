@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Flip Clock",
+  "description": "Animated flip clock with a minimal date rail for LEDMatrix.",
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable this plugin"
+    },
+    "use_24_hour": {
+      "type": "boolean",
+      "default": true,
+      "description": "Use 24-hour time instead of 12-hour time"
+    },
+    "show_weekday": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show weekday above the date"
+    },
+    "date_uppercase": {
+      "type": "boolean",
+      "default": true,
+      "description": "Render weekday and month in uppercase"
+    },
+    "animation_ms": {
+      "type": "integer",
+      "default": 420,
+      "minimum": 120,
+      "maximum": 900,
+      "description": "Total flip animation duration in milliseconds"
+    },
+    "animation_frames": {
+      "type": "integer",
+      "default": 7,
+      "minimum": 3,
+      "maximum": 10,
+      "description": "Number of animation frames per minute/hour change"
+    },
+    "display_duration": {
+      "type": "number",
+      "default": 60,
+      "minimum": 5,
+      "maximum": 3600,
+      "description": "Seconds to show this screen in the display rotation"
+    }
+  },
+  "required": ["enabled"],
+  "additionalProperties": false
+}
