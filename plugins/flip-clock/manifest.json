@@ -1,0 +1,34 @@
+{
+  "id": "flip-clock",
+  "name": "Flip Clock",
+  "version": "1.0.0",
+  "author": "jakejayeden",
+  "description": "Animated split-flap style clock with a minimal day/month/year date rail, tuned for 128x32 LEDMatrix displays.",
+  "entry_point": "manager.py",
+  "class_name": "FlipClockPlugin",
+  "category": "clock",
+  "tags": [
+    "clock",
+    "flip-clock",
+    "date",
+    "animation",
+    "128x32"
+  ],
+  "display_modes": [
+    "flip_clock"
+  ],
+  "update_interval": 1,
+  "default_duration": 60,
+  "config_schema": "config_schema.json",
+  "compatible_versions": [
+    ">=2.0.0"
+  ],
+  "versions": [
+    {
+      "released": "2026-10-24",
+      "version": "1.0.0",
+      "ledmatrix_min_version": "2.0.0"
+    }
+  ],
+  "last_updated": "2026-10-24"
+}
