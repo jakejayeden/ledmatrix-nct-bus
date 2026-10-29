@@ -38,7 +38,7 @@ class NCTBusDeparturesPlugin(BasePlugin):
             self.logger.error("NCT departure fetch failed: %s",exc,exc_info=True); self.error=str(exc)[:80]
     def _fetch_page(self):
         if not re.fullmatch(r"[A-Za-z0-9_-]{3,32}",self.stop_id): raise ValueError("Invalid stop_id")
-        req=urllib.request.Request(BASE_URL.format(self.stop_id),headers={"User-Agent":"Mozilla/5.0 LEDMatrix-NCT-Bus/1.2","Accept":"text/html,application/xhtml+xml"})
+        req=urllib.request.Request(BASE_URL.format(self.stop_id),headers={"User-Agent":"Mozilla/5.0 LEDMatrix-NCT-Bus/1.3","Accept":"text/html,application/xhtml+xml"})
         with urllib.request.urlopen(req,timeout=10) as r: return r.read().decode("utf-8",errors="replace")
     @staticmethod
     def _clean(text): return re.sub(r"\s+"," ",text or "").strip()
@@ -67,8 +67,6 @@ class NCTBusDeparturesPlugin(BasePlugin):
         rm=re.search(r"(?:^|\s)([A-Za-z]?\d{1,3}[A-Za-z]?)(?:\s|$)",before)
         if not rm: return None
         route=rm.group(1); dest=before[rm.end():].strip(" -–|") or "Destination"; raw=tm.group(1)
-        # Store minute predictions as just the number. display() draws a smaller 'min'
-        # separately so the unit remains legible on a low-resolution LED matrix.
         shown="DUE" if raw.lower()=="due" else raw if ":" in raw else (re.search(r"\d{1,3}",raw).group(0) if re.search(r"\d{1,3}",raw) else raw)
         return {"route":route,"destination":dest,"time":shown,"status":status,"is_minutes": bool(re.search(r"\d{1,3}\s*(?:mins?|minutes?)",raw,re.I))}
     def _parse_flat_text(self,text):
@@ -78,35 +76,48 @@ class NCTBusDeparturesPlugin(BasePlugin):
             out.append({"route":route,"destination":self._clean(dest),"time":shown,"status":(status or ("Scheduled" if ":" in raw else "Live")).title(),"is_minutes":is_minutes})
         return out
     @staticmethod
-    def _font(size=10,bold=False):
-        try: return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",size)
-        except Exception: return ImageFont.load_default()
-    @staticmethod
     def _fit(draw,text,font,max_width):
         text=str(text)
         if draw.textbbox((0,0),text,font=font)[2]<=max_width:return text
         while text and draw.textbbox((0,0),text+"..",font=font)[2]>max_width:text=text[:-1]
         return text+".."
     def display(self,force_clear=False):
-        w=self.display_manager.width; h=self.display_manager.height; img=Image.new("RGB",(w,h),BG); draw=ImageDraw.Draw(img)
-        header_font=self._font(8,True); row_font=self._font(10,True); dest_font=self._font(7,False); clock_font=self._font(8,True); unit_font=self._font(7,False)
-        clock=self.last_updated or "--:--"; clock_w=draw.textbbox((0,0),clock,font=clock_font)[2]; clock_x=w-clock_w-1
-        header=self._fit(draw,self.stop_name or self.stop_id,header_font,max(20,clock_x-4))
-        draw.text((1,0),header,font=header_font,fill=WHITE); draw.text((clock_x,0),clock,font=clock_font,fill=WHITE); draw.line((0,10,w-1,10),fill=ORANGE)
+        # Match the Apple Calendar plugin typography exactly: Pillow's built-in
+        # bitmap font only. Do not substitute TTF/BDF fonts here.
+        font=ImageFont.load_default()
+        image=Image.new("RGB",(128,32),BG)
+        draw=ImageDraw.Draw(image)
+
+        clock=self.last_updated or "--:--"
+        clock_w=draw.textbbox((0,0),clock,font=font)[2]
+        clock_x=127-clock_w
+        header=self._fit(draw,self.stop_name or self.stop_id,font,max(20,clock_x-3))
+        draw.text((1,0),header,font=font,fill=WHITE)
+        draw.text((clock_x,0),clock,font=font,fill=WHITE)
+        draw.line((0,9,127,9),fill=ORANGE)
+
         if not self.departures:
-            draw.text((2,16),"NO BUSES" if not self.error else "DATA ERROR",font=row_font,fill=SCHEDULED if not self.error else ERROR)
+            draw.text((2,15),"NO BUSES" if not self.error else "DATA ERROR",font=font,fill=SCHEDULED if not self.error else ERROR)
         else:
             for i,dep in enumerate(self.departures[:2]):
-                y=11+i*10; route=dep["route"][:4]; t=dep["time"][:6]; status=dep.get("status","Scheduled"); time_colour=LIVE if status.lower()=="live" else SCHEDULED
-                draw.text((1,y),route,font=row_font,fill=ORANGE)
-                # Use 'min' in a smaller regular font rather than a bold lowercase 'm'.
-                # This is much more recognisable at 32px panel height.
-                if dep.get("is_minutes"):
-                    unit="min"; unit_w=draw.textbbox((0,0),unit,font=unit_font)[2]; num_w=draw.textbbox((0,0),t,font=row_font)[2]
-                    tx=w-unit_w-num_w-3
-                    draw.text((tx,y),t,font=row_font,fill=time_colour)
-                    draw.text((tx+num_w+2,y+2),unit,font=unit_font,fill=time_colour)
-                else:
-                    tw=draw.textbbox((0,0),t,font=row_font)[2]; tx=w-tw-1; draw.text((tx,y),t,font=row_font,fill=time_colour)
-                dx=27; dest=self._fit(draw,dep["destination"],dest_font,max(1,tx-dx-3)); draw.text((dx,y+1),dest,font=dest_font,fill=WHITE)
-        self.display_manager.image=img; self.display_manager.update_display(); return True
+                y=11+i*10
+                route=dep["route"][:4]
+                t=dep["time"][:6]
+                status=dep.get("status","Scheduled")
+                time_colour=LIVE if status.lower()=="live" else SCHEDULED
+                draw.text((1,y),route,font=font,fill=ORANGE)
+
+                # With the Apple Calendar bitmap font, 'min' is clear enough to
+                # draw as one string while keeping the number/unit easy to read.
+                shown_time=(t+" min") if dep.get("is_minutes") else t
+                tw=draw.textbbox((0,0),shown_time,font=font)[2]
+                tx=127-tw
+                draw.text((tx,y),shown_time,font=font,fill=time_colour)
+
+                dx=25
+                dest=self._fit(draw,dep["destination"],font,max(1,tx-dx-2))
+                draw.text((dx,y),dest,font=font,fill=WHITE)
+
+        self.display_manager.image=image
+        self.display_manager.update_display()
+        return True
