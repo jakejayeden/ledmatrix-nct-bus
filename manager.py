@@ -1,6 +1,6 @@
 """
 NCT Bus Departures plugin for ChuckBuilds LEDMatrix.
-Tuned for 128x32 displays.
+Adaptive for 128x32 and wider 32px-high displays.
 """
 from __future__ import annotations
 import re
@@ -38,7 +38,7 @@ class NCTBusDeparturesPlugin(BasePlugin):
             self.logger.error("NCT departure fetch failed: %s",exc,exc_info=True); self.error=str(exc)[:80]
     def _fetch_page(self):
         if not re.fullmatch(r"[A-Za-z0-9_-]{3,32}",self.stop_id): raise ValueError("Invalid stop_id")
-        req=urllib.request.Request(BASE_URL.format(self.stop_id),headers={"User-Agent":"Mozilla/5.0 LEDMatrix-NCT-Bus/1.3","Accept":"text/html,application/xhtml+xml"})
+        req=urllib.request.Request(BASE_URL.format(self.stop_id),headers={"User-Agent":"Mozilla/5.0 LEDMatrix-NCT-Bus/1.4","Accept":"text/html,application/xhtml+xml"})
         with urllib.request.urlopen(req,timeout=10) as r: return r.read().decode("utf-8",errors="replace")
     @staticmethod
     def _clean(text): return re.sub(r"\s+"," ",text or "").strip()
@@ -81,39 +81,50 @@ class NCTBusDeparturesPlugin(BasePlugin):
         if draw.textbbox((0,0),text,font=font)[2]<=max_width:return text
         while text and draw.textbbox((0,0),text+"..",font=font)[2]>max_width:text=text[:-1]
         return text+".."
+    @staticmethod
+    def _display_font():
+        # Keep Pillow's built-in default typography, but request it one touch
+        # smaller where supported by the installed Pillow version.
+        try:
+            return ImageFont.load_default(size=9)
+        except TypeError:
+            return ImageFont.load_default()
     def display(self,force_clear=False):
-        # Match the Apple Calendar plugin typography exactly: Pillow's built-in
-        # bitmap font only. Do not substitute TTF/BDF fonts here.
-        font=ImageFont.load_default()
-        image=Image.new("RGB",(128,32),BG)
+        font=self._display_font()
+        # Use the active LEDMatrix dimensions rather than hard-coding 128px.
+        # This keeps the same layout on 128x32 and automatically uses the extra
+        # horizontal space if the panel is later extended to 256x32.
+        width=max(1,int(self.display_manager.width))
+        height=max(1,int(self.display_manager.height))
+        image=Image.new("RGB",(width,height),BG)
         draw=ImageDraw.Draw(image)
+        right=width-1
 
         clock=self.last_updated or "--:--"
         clock_w=draw.textbbox((0,0),clock,font=font)[2]
-        clock_x=127-clock_w
+        clock_x=max(1,right-clock_w)
         header=self._fit(draw,self.stop_name or self.stop_id,font,max(20,clock_x-3))
-        draw.text((1,0),header,font=font,fill=WHITE)
-        draw.text((clock_x,0),clock,font=font,fill=WHITE)
-        draw.line((0,9,127,9),fill=ORANGE)
+        draw.text((1,-1),header,font=font,fill=WHITE)
+        draw.text((clock_x,-1),clock,font=font,fill=WHITE)
+        # Leave a clean pixel gap below the smaller header text.
+        divider_y=min(10,height-1)
+        draw.line((0,divider_y,right,divider_y),fill=ORANGE)
 
         if not self.departures:
-            draw.text((2,15),"NO BUSES" if not self.error else "DATA ERROR",font=font,fill=SCHEDULED if not self.error else ERROR)
+            draw.text((2,min(14,height-1)),"NO BUSES" if not self.error else "DATA ERROR",font=font,fill=SCHEDULED if not self.error else ERROR)
         else:
             for i,dep in enumerate(self.departures[:2]):
-                y=11+i*10
+                y=12+i*10
+                if y>=height: break
                 route=dep["route"][:4]
                 t=dep["time"][:6]
                 status=dep.get("status","Scheduled")
                 time_colour=LIVE if status.lower()=="live" else SCHEDULED
                 draw.text((1,y),route,font=font,fill=ORANGE)
-
-                # With the Apple Calendar bitmap font, 'min' is clear enough to
-                # draw as one string while keeping the number/unit easy to read.
                 shown_time=(t+" min") if dep.get("is_minutes") else t
                 tw=draw.textbbox((0,0),shown_time,font=font)[2]
-                tx=127-tw
+                tx=max(1,right-tw)
                 draw.text((tx,y),shown_time,font=font,fill=time_colour)
-
                 dx=25
                 dest=self._fit(draw,dep["destination"],font,max(1,tx-dx-2))
                 draw.text((dx,y),dest,font=font,fill=WHITE)
